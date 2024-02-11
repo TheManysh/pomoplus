@@ -1,5 +1,11 @@
-import { View, Text, FlatList, Pressable } from 'react-native';
+import { View, Text, FlatList, TextInput, Pressable } from 'react-native';
 import { useEffect, useState } from 'react';
+import Icon from 'react-native-vector-icons/FontAwesome';
+
+// package components
+import Backdrop from '@/components/shared/Backdrop';
+
+//  utils
 import classNames from '@/utils/classNames';
 
 const tasks = [
@@ -22,57 +28,60 @@ export default function Home() {
 	const [pomodoro, setPomodoro] = useState<number>(1);
 	const [shortBreak, setShortBreak] = useState<number>(5);
 	const [longBreak, setLongBreak] = useState<number>(15);
-	const [longBreakAfter, setLongBreakAfter] = useState<number>(4);
-	const [isPomodoro, setIsPomodoro] = useState<boolean>(true);
-	const [isBreak, setIsBreak] = useState<boolean>(false);
-	const [isLongBreak, setIsLongBreak] = useState<boolean>(false);
-	// set time time to whichever is active
-	const [time, setTime] = useState<number>(
-		isPomodoro ? pomodoro * 60 : isBreak ? shortBreak * 60 : longBreak * 60
-	);
+	const [currentStatus, setCurrentStatus] = useState<string>('pomodoro');
+
+	// interval for the timer
+	const [intervalId, setIntervalId] = useState<null | NodeJS.Timeout>(null);
+
+	// set time for the timer
+	const [time, setTime] = useState<number>(pomodoro * 60);
 
 	// pomodoro state
 	const [isRunning, setIsRunning] = useState<boolean>(false);
 	const [isPaused, setIsPaused] = useState<boolean>(true);
 	const [isFinished, setIsFinished] = useState<boolean>(false);
 
-	// check break status
-	const [breakStatus, setBreakStatus] = useState({
-		pomodoro: true,
-		shortBreak: false,
-		longBreak: false,
-	});
-
-	// current pomodoro
-	const [pomodoroCount, setPomodoroCount] = useState<number>(0);
-
-	// TODO: check the logic
+	// start the timer
 	const startTimer = () => {
-		if (isRunning && !isPaused && !isFinished) {
-			setInterval(() => {
-				setTime((prevTime): number => {
-					if (prevTime === 0) {
-						setIsRunning(false);
-						setIsFinished(true);
-						return 0;
-					}
-					return prevTime - 1;
-				});
-			}, 1000);
+		const id = setInterval(() => {
+			setTime((prevTime) => prevTime - 1);
+		}, 1000);
+		setIntervalId(id);
+	};
+
+	// pause the timer
+	const pauseTimer = () => {
+		if (intervalId) {
+			clearInterval(intervalId);
 		}
 	};
 
-	// let's build the flowchart first
-	// 1. enter the pomodoro, short break, long break time, and long break after
-	// 2. start the timer
-	// 3. when the timer complete, set finished to true
-	// 4. start the short break and isShortBreak to true
-	// 5. when the short break is complete, set isShortBreak to false
-	// 6. start the timer again
+	// reset the timer
+	const resetTimerAndUpdateStatus = (pomoStatus: string) => {
+		setIsRunning(false);
+		setIsPaused(true);
+		setIsFinished(false);
+		setTime(
+			(pomoStatus === 'pomodoro'
+				? pomodoro
+				: pomoStatus === 'shortBreak'
+				? shortBreak
+				: longBreak) * 60
+		);
+		setCurrentStatus(pomoStatus);
+		pauseTimer();
+	};
+
+	// show/hide settings
+	const [isSettingVisible, setIsSettingVisible] = useState<boolean>(false);
 
 	useEffect(() => {
-		startTimer();
-	}, [isRunning, isPaused, isFinished]);
+		return () => {
+			if (intervalId) {
+				clearInterval(intervalId);
+			}
+		};
+	}, [intervalId]);
 
 	// check the number input
 	const testAndSetNumberInput = (text: string, updateState: Function) => {
@@ -88,8 +97,27 @@ export default function Home() {
 
 	return (
 		<View className='relative w-full h-full'>
+			<Backdrop isVisible={isSettingVisible} />
 			{/* setting for pomodoro */}
-			{/* <View className='absolute z-10 hidden w-64 h-64 p-4 bg-white round-lg'>
+			<Pressable
+				onPress={() => setIsSettingVisible(!isSettingVisible)}
+				className='absolute z-10 p-2 bg-gray-300 rounded-lg top-8 right-8'
+			>
+				<Icon name='cog' size={20} color='white' />
+			</Pressable>
+			<View
+				className={classNames(
+					!isSettingVisible && 'hidden',
+					'absolute z-50 h-64 p-3 bg-white rounded-lg w-200'
+				)}
+			>
+				{/* TODO: Fix this pressable with z-index */}
+				<Pressable
+					onPress={() => setIsSettingVisible(!isSettingVisible)}
+					className='absolute flex items-center justify-center w-6 h-6 bg-gray-200 rounded-lg z-100 top-4 right-4'
+				>
+					<Icon name='close' size={16} color='red' />
+				</Pressable>
 				<Text>Settings</Text>
 				<Text>{shortBreak}</Text>
 				<View>
@@ -107,25 +135,20 @@ export default function Home() {
 					<Text>Long Break</Text>
 					<Text>Long Break After</Text>
 				</View>
-			</View> */}
+			</View>
 
 			<View className='flex items-center justify-center w-full h-full bg-red-400'>
-				<View className='w-[90%] lg:w-1/2 md:w-2/3'>
-					<View className='flex items-center justify-center w-full p-3 text-white bg-red-300 rounded-lg'>
+				<View className='w-[90%] lg:w-1/2 md:w-1/2 h-full flex items-center justify-center'>
+					<View className='flex items-center justify-between w-full p-3 text-white bg-red-300 rounded-lg h-1/3'>
 						{/* pomodoro states */}
 						<View className='flex flex-row items-center justify-between w-full mb-4'>
 							{/* Pomodoro */}
 							<Pressable
 								onPress={() => {
-									setBreakStatus({
-										pomodoro: true,
-										shortBreak: false,
-										longBreak: false,
-									});
-									setTime(pomodoro * 60);
+									resetTimerAndUpdateStatus('pomodoro');
 								}}
 								className={classNames(
-									breakStatus.pomodoro && 'bg-gray-500',
+									currentStatus == 'pomodoro' && 'bg-gray-500',
 									'w-1/3 p-1.5 flex cursor-pointer items-center justify-center bg-opacity-20 rounded-lg'
 								)}
 							>
@@ -135,15 +158,10 @@ export default function Home() {
 							</Pressable>
 							<Pressable
 								onPress={() => {
-									setBreakStatus({
-										shortBreak: true,
-										longBreak: false,
-										pomodoro: false,
-									});
-									setTime(shortBreak * 60);
+									resetTimerAndUpdateStatus('shortBreak');
 								}}
 								className={classNames(
-									breakStatus.shortBreak && 'bg-gray-500',
+									currentStatus == 'shortBreak' && 'bg-gray-500',
 									'w-1/3 p-1.5 flex cursor-pointer items-center justify-center bg-opacity-20 rounded-lg'
 								)}
 							>
@@ -151,15 +169,10 @@ export default function Home() {
 							</Pressable>
 							<Pressable
 								onPress={() => {
-									setBreakStatus({
-										longBreak: true,
-										shortBreak: false,
-										pomodoro: false,
-									});
-									setTime(longBreak * 60);
+									resetTimerAndUpdateStatus('longBreak');
 								}}
 								className={classNames(
-									breakStatus.longBreak && 'bg-gray-500',
+									currentStatus == 'longBreak' && 'bg-gray-500',
 									'w-1/3 p-1.5 flex cursor-pointer items-center justify-center bg-opacity-20 rounded-lg'
 								)}
 							>
@@ -169,7 +182,7 @@ export default function Home() {
 
 						{/* timer */}
 						<View className='flex items-center justify-center'>
-							<Text className='text-center text-white text-8xl'>
+							<Text className='text-center text-white text-9xl'>
 								{Math.floor(time / 60)
 									.toString()
 									.padStart(2, '0') +
@@ -179,13 +192,16 @@ export default function Home() {
 						</View>
 
 						{/* controls */}
-						{/* TODO: Check the logic for controls and fix the UI */}
 						<View className='flex flex-row items-center justify-between w-full mt-4'>
 							<Pressable
 								onPress={() => {
 									setIsRunning(!isRunning);
 									setIsPaused(!isPaused);
-									startTimer();
+									if (isRunning) {
+										pauseTimer();
+									} else {
+										startTimer();
+									}
 								}}
 								className={classNames(
 									isRunning && 'bg-yellow-500',
@@ -199,13 +215,8 @@ export default function Home() {
 							</Pressable>
 							<Pressable
 								onPress={() => {
-									setIsRunning(!isRunning);
-									setIsPaused(!isPaused);
-									setBreakStatus({
-										pomodoro: true,
-										shortBreak: false,
-										longBreak: false,
-									});
+									setIsRunning(false);
+									resetTimerAndUpdateStatus(currentStatus);
 								}}
 								className='p-2 ml-2 text-white bg-red-500 rounded-lg '
 							>
@@ -215,13 +226,12 @@ export default function Home() {
 					</View>
 
 					{/* tasks */}
-					{/* make this interactive */}
 					<View id='task-list' className='w-full mt-8'>
-						<View className='p-3 border-4 border-gray-100 border-dashed rounded-lg'>
+						<Pressable className='p-3 border-4 border-gray-100 border-dashed rounded-lg'>
 							<Text className='text-xl font-semibold text-center text-white'>
 								+
 							</Text>
-						</View>
+						</Pressable>
 						<FlatList
 							data={tasks}
 							renderItem={({ item }) => (
@@ -233,7 +243,7 @@ export default function Home() {
 									</View>
 									<View>
 										<Text className='text-gray-500'>
-											{pomodoroCount}/{item.allottedPomodoro}
+											{1}/{item.allottedPomodoro}
 										</Text>
 									</View>
 								</View>
