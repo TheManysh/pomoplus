@@ -1,31 +1,52 @@
-import { View, Text, FlatList, TextInput, Pressable } from 'react-native';
+import { View, Text, TextInput, Pressable, Modal } from 'react-native';
 import { useEffect, useState } from 'react';
-import Icon from 'react-native-vector-icons/FontAwesome';
-
+import { Ionicons } from '@expo/vector-icons';
 // package components
 import Backdrop from '@/components/shared/Backdrop';
 
 //  utils
 import classNames from '@/utils/classNames';
-
-const tasks = [
-	{
-		id: 1,
-		title: 'Task 1',
-		description: 'This is task 1',
-		allottedPomodoro: 2,
-	},
-	{
-		id: 2,
-		title: 'Task 2',
-		description: 'This is task 2',
-		allottedPomodoro: 4,
-	},
-];
+import { FlatList } from 'react-native';
+import Task, { TaskProps } from '@/components/Task';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Home() {
+	// get the tasks from the local storage
+	const [tasks, setTasks] = useState<TaskProps[]>([]);
+
+	// add a task
+	const addTask = async () => {
+		await AsyncStorage.setItem(
+			'tasks',
+			JSON.stringify([
+				...tasks,
+				{
+					_id: '1',
+					title: 'Task 1',
+					description: 'Description 1',
+					completedPomodoro: 0,
+					allotedPomodoro: 4,
+					startDate: Date.now(),
+				},
+			])
+		);
+	};
+
+	// get the tasks from the local storage
+	const getTasks = async () => {
+		const tasks = await AsyncStorage.getItem('tasks');
+		if (tasks) {
+			setTasks(JSON.parse(tasks));
+		}
+	};
+
+	// get the task from the local storage
+	useEffect(() => {
+		getTasks();
+	}, []);
+
 	// pomodoro timer
-	const [pomodoro, setPomodoro] = useState<number>(1);
+	const [pomodoro, setPomodoro] = useState<number>(0.1);
 	const [shortBreak, setShortBreak] = useState<number>(5);
 	const [longBreak, setLongBreak] = useState<number>(15);
 	const [currentStatus, setCurrentStatus] = useState<string>('pomodoro');
@@ -38,8 +59,6 @@ export default function Home() {
 
 	// pomodoro state
 	const [isRunning, setIsRunning] = useState<boolean>(false);
-	const [isPaused, setIsPaused] = useState<boolean>(true);
-	const [isFinished, setIsFinished] = useState<boolean>(false);
 
 	// start the timer
 	const startTimer = () => {
@@ -48,6 +67,14 @@ export default function Home() {
 		}, 1000);
 		setIntervalId(id);
 	};
+
+	// stop the timer if it is completed
+	useEffect(() => {
+		if (time === 0) {
+			if (intervalId) clearInterval(intervalId);
+			setIsRunning(false);
+		}
+	}, [time]);
 
 	// pause the timer
 	const pauseTimer = () => {
@@ -59,8 +86,6 @@ export default function Home() {
 	// reset the timer
 	const resetTimerAndUpdateStatus = (pomoStatus: string) => {
 		setIsRunning(false);
-		setIsPaused(true);
-		setIsFinished(false);
 		setTime(
 			(pomoStatus === 'pomodoro'
 				? pomodoro
@@ -97,45 +122,15 @@ export default function Home() {
 
 	return (
 		<View className='relative w-full h-full'>
+			{/* TODO: work on the bottom sheet modal */}
 			<Backdrop isVisible={isSettingVisible} />
 			{/* setting for pomodoro */}
 			<Pressable
 				onPress={() => setIsSettingVisible(!isSettingVisible)}
-				className='absolute z-10 p-2 bg-gray-300 rounded-lg top-8 right-8'
+				className='absolute z-10 p-2 rounded-lg top-8 right-8'
 			>
-				<Icon name='cog' size={20} color='white' />
+				<Ionicons name='settings' size={20} color='white' />
 			</Pressable>
-			<View
-				className={classNames(
-					!isSettingVisible && 'hidden',
-					'absolute z-50 h-64 p-3 bg-white rounded-lg w-200'
-				)}
-			>
-				{/* TODO: Fix this pressable with z-index */}
-				<Pressable
-					onPress={() => setIsSettingVisible(!isSettingVisible)}
-					className='absolute flex items-center justify-center w-6 h-6 bg-gray-200 rounded-lg z-100 top-4 right-4'
-				>
-					<Icon name='close' size={16} color='red' />
-				</Pressable>
-				<Text>Settings</Text>
-				<Text>{shortBreak}</Text>
-				<View>
-					<View className='flex flex-row'>
-						<Text>Short Break</Text>
-						<TextInput
-							inputMode='numeric'
-							className='ml-4 border-2 border-gray-400'
-							onChangeText={(text) =>
-								testAndSetNumberInput(text, setShortBreak)
-							}
-							defaultValue={shortBreak.toString()}
-						/>
-					</View>
-					<Text>Long Break</Text>
-					<Text>Long Break After</Text>
-				</View>
-			</View>
 
 			<View className='flex items-center justify-center w-full h-full bg-red-400'>
 				<View className='w-[90%] lg:w-1/2 md:w-1/2 h-full flex items-center justify-center'>
@@ -161,7 +156,7 @@ export default function Home() {
 									resetTimerAndUpdateStatus('shortBreak');
 								}}
 								className={classNames(
-									currentStatus == 'shortBreak' && 'bg-gray-500',
+									currentStatus == 'shortBreak' && 'bg-gray-500 bg-opacity-50',
 									'w-1/3 p-1.5 flex cursor-pointer items-center justify-center bg-opacity-20 rounded-lg'
 								)}
 							>
@@ -192,11 +187,11 @@ export default function Home() {
 						</View>
 
 						{/* controls */}
-						<View className='flex flex-row items-center justify-between w-full mt-4'>
+						<View className='flex flex-row items-center justify-between w-full gap-3 mt-4'>
+							{/* start, stop the timer */}
 							<Pressable
 								onPress={() => {
 									setIsRunning(!isRunning);
-									setIsPaused(!isPaused);
 									if (isRunning) {
 										pauseTimer();
 									} else {
@@ -204,52 +199,56 @@ export default function Home() {
 									}
 								}}
 								className={classNames(
-									isRunning && 'bg-yellow-500',
-									'w-4/5 p-2 text-white  rounded-lg',
-									isPaused && 'bg-green-500'
+									isRunning ? 'bg-yellow-400' : 'bg-green-400',
+									'p-2 text-white rounded-lg flex flex-row items-center flex-[3]'
 								)}
 							>
-								<Text className='font-semibold text-center text-white'>
+								<View>
+									{isRunning ? (
+										<Ionicons name='pause' size={20} color='white' />
+									) : (
+										<Ionicons name='play' size={20} color='white' />
+									)}
+								</View>
+								<Text className='ml-2 font-semibold text-center text-white'>
 									{isRunning ? 'Pause' : 'Start'}
 								</Text>
 							</Pressable>
+
+							{/* reset the timer */}
 							<Pressable
 								onPress={() => {
 									setIsRunning(false);
 									resetTimerAndUpdateStatus(currentStatus);
 								}}
-								className='p-2 ml-2 text-white bg-red-500 rounded-lg '
+								className='flex flex-row items-center p-2 text-white bg-red-500 rounded-lg'
 							>
-								<Text className='text-center text-white'>Reset</Text>
+								<View>
+									<Ionicons name='stop' size={20} color='white' />
+								</View>
+								<Text className='ml-2 text-center text-white'>Reset</Text>
+							</Pressable>
+
+							{/* skip the current pomodoro */}
+							<Pressable className='flex flex-row items-center p-1 text-white rounded-lg'>
+								<Ionicons name='play-skip-forward' size={20} color='white' />
 							</Pressable>
 						</View>
 					</View>
 
 					{/* tasks */}
 					<View id='task-list' className='w-full mt-8'>
-						<Pressable className='p-3 border-4 border-gray-100 border-dashed rounded-lg'>
+						<Pressable className='p-3 border-2 border-gray-100 border-dashed rounded-lg'>
 							<Text className='text-xl font-semibold text-center text-white'>
 								+
 							</Text>
 						</Pressable>
-						<FlatList
-							data={tasks}
-							renderItem={({ item }) => (
-								<View className='flex flex-row items-center justify-between w-full p-4 mt-4 bg-white border-4 border-white rounded-lg'>
-									<View>
-										<Text className='font-semibold text-gray-900'>
-											{item.title}
-										</Text>
-									</View>
-									<View>
-										<Text className='text-gray-500'>
-											{1}/{item.allottedPomodoro}
-										</Text>
-									</View>
-								</View>
-							)}
-							keyExtractor={(item) => item.id.toString()}
-						/>
+						<View>
+							<FlatList
+								data={tasks}
+								renderItem={({ item }) => <Task data={item} />}
+							/>
+						</View>
 					</View>
 				</View>
 			</View>
