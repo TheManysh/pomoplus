@@ -1,8 +1,6 @@
 import { View, Text, TextInput, Pressable, Modal } from 'react-native';
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-// package components
-import Backdrop from '@/components/shared/Backdrop';
 
 //  utils
 import classNames from '@/utils/classNames';
@@ -16,20 +14,7 @@ export default function Home() {
 
 	// add a task
 	const addTask = async () => {
-		await AsyncStorage.setItem(
-			'tasks',
-			JSON.stringify([
-				...tasks,
-				{
-					_id: '1',
-					title: 'Task 1',
-					description: 'Description 1',
-					completedPomodoro: 0,
-					allotedPomodoro: 4,
-					startDate: Date.now(),
-				},
-			])
-		);
+		await AsyncStorage.setItem('tasks', JSON.stringify([...tasks]));
 	};
 
 	// get the tasks from the local storage
@@ -46,16 +31,18 @@ export default function Home() {
 	}, []);
 
 	// pomodoro timer
-	const [pomodoro, setPomodoro] = useState<number>(0.1);
-	const [shortBreak, setShortBreak] = useState<number>(5);
-	const [longBreak, setLongBreak] = useState<number>(15);
+	const [pomodoro, setPomodoro] = useState<number>(0.02);
+	const [shortBreak, setShortBreak] = useState<number>(0.02);
+	const [longBreak, setLongBreak] = useState<number>(0.05);
 	const [currentStatus, setCurrentStatus] = useState<string>('pomodoro');
+	const [pomodoroCount, setPomodoroCount] = useState<number>(0);
+	const [longBreakAfter, setLongBreakAfter] = useState<number>(2);
 
 	// interval for the timer
 	const [intervalId, setIntervalId] = useState<null | NodeJS.Timeout>(null);
 
 	// set time for the timer
-	const [time, setTime] = useState<number>(pomodoro * 60);
+	const [time, setTime] = useState<number>(Math.ceil(pomodoro * 60));
 
 	// pomodoro state
 	const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -68,14 +55,6 @@ export default function Home() {
 		setIntervalId(id);
 	};
 
-	// stop the timer if it is completed
-	useEffect(() => {
-		if (time === 0) {
-			if (intervalId) clearInterval(intervalId);
-			setIsRunning(false);
-		}
-	}, [time]);
-
 	// pause the timer
 	const pauseTimer = () => {
 		if (intervalId) {
@@ -87,15 +66,39 @@ export default function Home() {
 	const resetTimerAndUpdateStatus = (pomoStatus: string) => {
 		setIsRunning(false);
 		setTime(
-			(pomoStatus === 'pomodoro'
-				? pomodoro
-				: pomoStatus === 'shortBreak'
-				? shortBreak
-				: longBreak) * 60
+			Math.ceil(
+				(pomoStatus === 'pomodoro'
+					? pomodoro
+					: pomoStatus === 'shortBreak'
+					? shortBreak
+					: longBreak) * 60
+			)
 		);
 		setCurrentStatus(pomoStatus);
 		pauseTimer();
 	};
+
+	// stop the timer if it is completed
+	// TODO: work on the notification + change the status after completion
+	useEffect(() => {
+		if (time === 0) {
+			if (intervalId) clearInterval(intervalId);
+			setIsRunning(false);
+			if (currentStatus === 'pomodoro') {
+				setPomodoroCount((prevCount) => {
+					if (prevCount + 1 === longBreakAfter) {
+						resetTimerAndUpdateStatus('longBreak');
+						return 0;
+					} else {
+						resetTimerAndUpdateStatus('shortBreak');
+						return prevCount + 1;
+					}
+				});
+			} else {
+				resetTimerAndUpdateStatus('pomodoro');
+			}
+		}
+	}, [time]);
 
 	// show/hide settings
 	const [isSettingVisible, setIsSettingVisible] = useState<boolean>(false);
@@ -122,8 +125,6 @@ export default function Home() {
 
 	return (
 		<View className='relative w-full h-full'>
-			{/* TODO: work on the bottom sheet modal */}
-			<Backdrop isVisible={isSettingVisible} />
 			{/* setting for pomodoro */}
 			<Pressable
 				onPress={() => setIsSettingVisible(!isSettingVisible)}
