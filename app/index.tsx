@@ -1,12 +1,13 @@
 import { View, Text, TextInput, Pressable, Modal } from 'react-native';
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 
 //  utils
 import classNames from '@/utils/classNames';
 import { FlatList } from 'react-native';
 import Task, { TaskProps } from '@/components/Task';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Home() {
 	// get the tasks from the local storage
