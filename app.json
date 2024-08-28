@@ -1,7 +1,7 @@
 {
 	"expo": {
-		"name": "client",
-		"slug": "client",
+		"name": "Pomoplus",
+		"slug": "pomoplus",
 		"version": "1.0.0",
 		"orientation": "portrait",
 		"icon": "./assets/images/icon.png",
@@ -25,7 +25,7 @@
 		},
 		"web": {
 			"bundler": "metro",
-			"output": "server",
+			"output": "single",
 			"favicon": "./assets/images/favicon.png"
 		},
 		"plugins": [
