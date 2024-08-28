@@ -1,9 +1,10 @@
+import TabBar from '@/components/typography/TabBar';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function AppLayout() {
 	return (
-		<Tabs>
+		<Tabs tabBar={(props) => <TabBar {...props} />}>
 			<Tabs.Screen
 				name='home'
 				options={{
@@ -44,6 +45,7 @@ export default function AppLayout() {
 			<Tabs.Screen
 				name='discover/[slug]'
 				options={{
+					title: 'Article',
 					href: null,
 				}}
 			/>
