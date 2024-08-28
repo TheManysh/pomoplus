@@ -1,4 +1,4 @@
-import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function AppLayout() {
@@ -7,6 +7,7 @@ export default function AppLayout() {
 			<Tabs.Screen
 				name='home'
 				options={{
+					title: 'Home',
 					tabBarIcon: ({ color }) => (
 						<FontAwesome5 name='home' size={16} color={color} />
 					),
@@ -29,6 +30,21 @@ export default function AppLayout() {
 					tabBarIcon: ({ color }) => (
 						<FontAwesome5 name='globe-asia' size={16} color={color} />
 					),
+				}}
+			/>
+			<Tabs.Screen
+				name='profile/index'
+				options={{
+					title: 'Profile',
+					tabBarIcon: ({ color }) => (
+						<Ionicons name='person-outline' size={16} color={color} />
+					),
+				}}
+			/>
+			<Tabs.Screen
+				name='discover/[slug]'
+				options={{
+					href: null,
 				}}
 			/>
 		</Tabs>

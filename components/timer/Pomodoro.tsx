@@ -82,17 +82,18 @@ const PomodoroTimer = ({
 	}, [secondsLeft]);
 
 	return (
-		<View className='flex-1 justify-center w-full h-full bg-white rounded-lg items-center p-5'>
-			<View className='bg-white'>
+		<View className='justify-center w-full h-full items-center p-5'>
+			<View className='w-full'>
 				<View className='w-full flex items-center justify-center'>
-					<Text className='text-5xl mb-8'>{formatTime()}</Text>
+					<Text className='text-8xl mb-8'>{formatTime()}</Text>
 				</View>
-				<View className='flex flex-row gap-x-4 w-full'>
+				{/* button */}
+				<View className='w-full flex flex-row'>
 					<View>
 						<Pressable
 							className={
 								(isActive ? 'bg-red-500' : 'bg-green-500') +
-								' px-3 py-2 rounded-lg'
+								' px-4 py-3 rounded-lg'
 							}
 							onPress={toggleTimer}
 						>
@@ -103,7 +104,7 @@ const PomodoroTimer = ({
 					</View>
 					<View>
 						<Pressable
-							className={'px-3 py-2 rounded-lg bg-blue-500'}
+							className={'px-4 py-3 rounded-lg bg-blue-500'}
 							onPress={resetTimer}
 						>
 							<Text className='text-white font-semibold'>Reset</Text>

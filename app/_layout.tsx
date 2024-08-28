@@ -11,6 +11,9 @@ import 'react-native-reanimated';
 import { NativeWindStyleSheet } from 'nativewind';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import ImpulsePushProvider from '@/providers/ImpulsePushProvider';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -36,12 +39,20 @@ export default function RootLayout() {
 	}
 
 	return (
-		<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-			<Stack>
-				<Stack.Screen name='index' options={{ headerShown: false }} />
-				<Stack.Screen name='(app)' options={{ headerShown: false }} />
-				<Stack.Screen name='+not-found' />
-			</Stack>
-		</ThemeProvider>
+		<GestureHandlerRootView>
+			<BottomSheetModalProvider>
+				<ThemeProvider
+					value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
+				>
+					<ImpulsePushProvider>
+						<Stack>
+							<Stack.Screen name='index' options={{ headerShown: false }} />
+							<Stack.Screen name='(app)' options={{ headerShown: false }} />
+							<Stack.Screen name='+not-found' />
+						</Stack>
+					</ImpulsePushProvider>
+				</ThemeProvider>
+			</BottomSheetModalProvider>
+		</GestureHandlerRootView>
 	);
 }

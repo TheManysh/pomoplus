@@ -3,5 +3,4 @@ export interface ITask {
 	time: string;
 	tag: string;
 	description: string;
-	icon: string;
 }
